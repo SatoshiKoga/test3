@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スタディコーチ料金シミュレーター</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --background-color: #f0f4f8;
+            --card-background: #ffffff;
+            --text-color: #333333;
+            --border-radius: 8px;
+            --transition-speed: 0.3s;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: box-shadow var(--transition-speed);
+        }
+
+        .card:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        h1, h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        select, input[type="checkbox"] {
+            margin-bottom: 10px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            transition: border-color var(--transition-speed);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23333' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color var(--transition-speed);
+        }
+
+        button:hover {
+            background-color: #3a7bd5;
+        }
+
+        .total {
+            font-size: 1.2em;
+            font-weight: bold;
+            background-color: #e9f0f8;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+        }
+
+        .total p {
+            margin: 10px 0;
+        }
+
+        .note {
+            font-size: 0.9em;
+            color: #666;
+            font-style: italic;
+        }
+
+        #logo {
+            max-width: 300px;
+            display: block;
+            margin: 0 auto 30px;
+        }
+
+        .steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: var(--border-radius);
+            transition: background-color var(--transition-speed);
+        }
+
+        .step.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .steps {
+                flex-direction: column;
+            }
+
+            .step {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="simulator">
+            <img id="logo" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Studycoach_wide1-logo_new%20(2)-FzyZQouwJ0Jh5VBjd3VRGZqdeiimLC.png" alt="スタディコーチ ロゴ" class="fade-in">
+            <div class="card fade-in">
+                <h1>料金シミュレーター</h1>
+                <p>以下のステップに従って、あなたに最適なプランを見つけましょう。</p>
+                <div class="steps">
+                    <div class="step active" id="step1">1. コース選択</div>
+                    <div class="step" id="step2">2. プラン詳細</div>
+                    <div class="step" id="step3">3. オプション</div>
+                    <div class="step" id="step4">4. 結果確認</div>
+                </div>
+                <div id="step1-content">
+                    <div class="form-group">
+                        <label for="course">メインコースを選択</label>
+                        <select id="course">
+                            <option value="support">自主学習サポートコース</option>
+                            <option value="management">自主学習徹底管理コース</option>
+                            <option value="reversal">逆転合格実現コース</option>
+                            <option value="weakness">苦手科目対策コース</option>
+                        </select>
+                    </div>
+                    <button id="next-step1">次へ</button>
+                </div>
+                <div id="step2-content" style="display: none;">
+                    <div class="form-group">
+                        <label for="timePlan">プラン（週当たりの時間）</label>
+                        <select id="timePlan"></select>
+                    </div>
+                    <div class="form-group" id="packDurationGroup">
+                        <label for="packDuration">パック期間</label>
+                        <select id="packDuration"></select>
+                    </div>
+                    <button id="prev-step2">戻る</button>
+                    <button id="next-step2">次へ</button>
+                </div>
+                <div id="step3-content" style="display: none;">
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="highSchoolThirdYear">
+                        <label for="highSchoolThirdYear">高3・高卒生 
+                            <span class="tooltip">?
+                                <span class="tooltiptext">高校3年生または高校卒業生の方向けのオプションです。</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="medicalSchool">
+                        <label for="medicalSchool">医学部コーチ希望
+                            <span class="tooltip">?
+                                <span class="tooltiptext">医学部受験を目指す方向けの特別なコーチングが含まれます。</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div id="additionalOptions" style="display: none;">
+                        <h3>追加オプション</h3>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="studyRoom">
+                            <label for="studyRoom">オンライン自習室 (¥14,800/月)
+                                <span class="tooltip">?
+                                    <span class="tooltiptext">オンラインで他の生徒と一緒に学習できる環境を提供します。</span>
+                                </span>
+                            </label>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="chat">
+                            <label for="chat">24時間チャット指導 (¥14,800/月)
+                                <span class="tooltip">?
+                                    <span class="tooltiptext">24時間いつでも質問できるチャットサポートが含まれます。</span>
+                                </span>
+                            </label>
+                        </div>
+                        <p>担任指導費 (¥5,000/月) とシステム管理費用 (¥980/月) は毎月のお月謝でお支払いいただきます。</p>
+                    </div>
+                    <button id="prev-step3">戻る</button>
+                    <button id="next-step3">結果を見る</button>
+                </div>
+                <div id="step4-content" style="display: none;">
+                    <div class="total fade-in">
+                        <p id="monthlyFee"></p>
+                        <p id="enrollmentFee"></p>
+                        <p id="totalAmount"></p>
+                        <p class="note">（日割り計算により多少金額に変更がございます。）</p>
+                    </div>
+                    <button id="prev-step4">オプションを変更</button>
+                    <button id="downloadPDF">PDFでダウンロード</button>
+                </div>
+            </div>
+            <div class="card fade-in">
+                <h2>お支払いの流れ</h2>
+                <ol>
+                    <li>お支払い金額が確定したら、メールにて契約書と請求書をお送りします。</li>
+                    <li>契約書メール（クラウドサイン）に金額の詳細の記載がございます。内容確認いただき契約締結をお願いします。</li>
+                    <li>請求書メール（株式会社Builds）にてお支払い手続きをお願いいたします。クレジットカード、銀行振込に対応しております。</li>
+                    <li>お支払い完了したらご一報お願いいたします。</li>
+                    <li>お手続き完了です。</li>
+                </ol>
+                <p>
+                    詳しくは
+                    <a href="https://www.notion.so/8f80642e9640456082fff0e823744b39?pvs=4" target="_blank">こちらのページ</a>
+                    に記載ございます。よくあるご質問をトラブルシューティングとしてまとめておりますのでご確認ください。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const courses = {
+            support: "自主学習サポートコース",
+            management: "自主学習徹底管理コース",
+            reversal: "逆転合格実現コース",
+            weakness: "苦手科目対策コース"
+        };
+
+        const timePlans = {
+            support: ["60", "120", "180"],
+            management: ["90", "180", "270"],
+            reversal: ["90", "180", "270"],
+            weakness: ["10", "30", "60", "100"]
+        };
+
+        const packDurations = {
+            support: ["18", "12", "6", "1"],
+            management: ["18", "12", "6", "1"],
+            reversal: ["18", "12", "6", "3"],
+            weakness: ["1"]
+        };
+
+        const basePrices = {
+            support: {
+                "60": { "18": 54800, "12": 54800, "6": 57800, "1": 59800 },
+                "120": { "18": 74800, "12": 74800, "6": 77800, "1": 79800 },
+                "180": { "18": 94800, "12": 94800, "6": 97800, "1": 99800 }
+            },
+            management: {
+                "90": { "18": 74800, "12": 74800, "6": 77800, "1": 79800 },
+                "180": { "18": 104800, "12": 104800, "6": 107800, "1": 109800 },
+                "270": { "18": 134800, "12": 134800, "6": 137800, "1": 139800 }
+            },
+            reversal: {
+                "90": { "18": 94800, "12": 94800, "6": 97800, "3": 99800 },
+                "180": { "18": 124800, "12": 124800, "6": 127800, "3": 129800 },
+                "270": { "18": 154800, "12": 154800, "6": 157800, "3": 159800 }
+            },
+            weakness: {
+                "10": { "1": 6500 },
+                "30": { "1": 6250 },
+                "60": { "1": 6000 },
+                "100": { "1": 6000 }
+            }
+        };
+
+        const additionalOptions = [
+            { id: "studyRoom", name: "オンライン自習室", price: 14800 },
+            { id: "chat", name: "24時間チャット指導", price: 14800 }
+        ];
+
+        function updateTimePlans() {
+            const course = document.getElementById('course').value;
+            const timePlanSelect = document.getElementById('timePlan');
+            timePlanSelect.innerHTML = '';
+            timePlans[course].forEach(plan => {
+                const option = document.createElement('option');
+                option.value = plan;
+                option.textContent = course === 'weakness' ? `${plan}時間` : `${plan}分`;
+                timePlanSelect.appendChild(option);
+            });
+        }
+
+        function updatePackDurations() {
+            const course = document.getElementById('course').value;
+            const packDurationSelect = document.getElementById('packDuration');
+            packDurationSelect.innerHTML = '';
+            packDurations[course].forEach(duration => {
+                const option = document.createElement('option');
+                option.value = duration;
+                option.textContent = duration === "1" ? "お試し" : `${duration}ヶ月`;
+                packDurationSelect.appendChild(option);
+            });
+        }
+
+        function calculatePrice() {
+            const course = document.getElementById('course').value;
+            const timePlan = document.getElementById('timePlan').value;
+            const packDuration = document.getElementById('packDuration').value;
+            const isHighSchoolThirdYear = document.getElementById('highSchoolThirdYear').checked;
+            const isMedicalSchool = document.getElementById('medicalSchool').checked;
+            const studyRoom = document.getElementById('studyRoom').checked;
+            const chat = document.getElementById('chat').checked;
+
+            let basePrice = basePrices[course][timePlan][packDuration];
+            let totalMonths = packDuration === "1" ? 1 : parseInt(packDuration);
+
+            if (isHighSchoolThirdYear && course !== "weakness") {
+                basePrice += 2000;
+            }
+
+            if (isMedicalSchool && course !== "weakness") {
+                basePrice *= 1.5;
+            }
+
+            let optionsPrice = (studyRoom ? 14800 : 0) + (chat ? 14800 : 0);
+
+            if (course === "weakness") {
+                optionsPrice += 5000 + 980; // Add tutor and system management fees
+            }
+
+            let totalPrice, totalAmount;
+            if (course === "weakness") {
+                totalPrice = basePrice;
+                totalAmount = basePrice * parseInt(timePlan) + optionsPrice;
+            } else {
+                totalPrice = basePrice + optionsPrice;
+                totalAmount = totalPrice * totalMonths;
+            }
+
+            let enrollmentFee = 33000;
+            if (course === "weakness" && timePlan === "100" && packDuration === "1") {
+                enrollmentFee = 0;
+            } else if (course !== "weakness" && packDuration === "18") {
+                enrollmentFee = 0;
+            }
+
+            document.getElementById('monthlyFee').textContent = course === "weakness" 
+                ? `1時間あたりの料金: ¥${totalPrice.toLocaleString()}`
+                : `月額料金: ¥${totalPrice.toLocaleString()}`;
+            document.getElementById('enrollmentFee').textContent = `入学金: ¥${enrollmentFee.toLocaleString()}`;
+            document.getElementById('totalAmount').textContent = `ご入会時のお支払い総額: ¥${(totalAmount + enrollmentFee).toLocaleString()}`;
+
+            // Add fade-in effect to the total section
+            document.querySelector('.total').classList.remove('fade-in');
+            void document.querySelector('.total').offsetWidth; // Trigger reflow
+            document.querySelector('.total').classList.add('fade-in');
+        }
+
+        function showStep(stepNumber) {
+            document.querySelectorAll('.step').forEach((step, index) => {
+                if (index < stepNumber) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
+
+            document.querySelectorAll('[id^="step"]').forEach(step => {
+                step.style.display = 'none';
+            });
+
+            document.getElementById(`step${stepNumber}-content`).style.display = 'block';
+        }
+
+        document.getElementById('course').addEventListener('change', function() {
+            updateTimePlans();
+            updatePackDurations();
+            const additionalOptions = document.getElementById('additionalOptions');
+            const packDurationGroup = document.getElementById('packDurationGroup');
+            if (this.value === 'weakness') {
+                additionalOptions.style.display = 'block';
+                packDurationGroup.style.display = 'none';
+            } else {
+                additionalOptions.style.display = 'none';
+                packDurationGroup.style.display = 'block';
+            }
+        });
+
+        document.getElementById('next-step1').addEventListener('click', () => {
+            showStep(2);
+        });
+
+        document.getElementById('prev-step2').addEventListener('click', () => {
+            showStep(1);
+        });
+
+        document.getElementById('next-step2').addEventListener('click', () => {
+            showStep(3);
+        });
+
+        document.getElementById('prev-step3').addEventListener('click', () => {
+            showStep(2);
+        });
+
+        document.getElementById('next-step3').addEventListener('click', () => {
+            calculatePrice();
+            showStep(4);
+        });
+
+        document.getElementById('prev-step4').addEventListener('click', () => {
+            showStep(3);
+        });
+
+        document.getElementById('downloadPDF').addEventListener('click', function() {
+            html2canvas(document.getElementById('simulator')).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jspdf.jsPDF();
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save('tuition-simulation.pdf');
+            });
+        });
+
+        // Initialize the simulator
+        updateTimePlans();
+        updatePackDurations();
+        showStep(1);
+    </script>
+</body>
+</html>
